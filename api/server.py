@@ -25,7 +25,7 @@ from managers.user_manager import UserManager
 from models.user import Permission
 from utils.api_client import perform_real_lookup
 from utils.input_validator import validator
-from utils.helpers import normalize_api_response, print_colored
+from utils.helpers import print_colored
 from analytics.dashboard import AnalyticsDashboard
 from ml.anomaly_detector import AnomalyDetector
 
