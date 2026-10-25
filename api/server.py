@@ -1,3 +1,4 @@
+import secrets
 """
 Web API & REST Interface
 Expose aplikasi functionality via REST API untuk integration dengan systems lain.
@@ -49,7 +50,32 @@ class APIServer:
     
     def _setup_routes(self):
         """Setup API routes"""
-        
+
+        def _authenticate_request():
+            """Validate Bearer token against the authenticated user's session token."""
+            auth_header = request.headers.get('Authorization', '')
+
+            if not auth_header.startswith('Bearer '):
+                return None, ('Authentication required', 401)
+
+            token = auth_header[7:].strip()
+
+            if not token:
+                return None, ('Authentication required', 401)
+
+            user = self.user_manager.current_user
+
+            if not user or not user.is_active:
+                return None, ('Not authenticated', 401)
+
+            if not user.session_token:
+                return None, ('Invalid session', 401)
+
+            if not secrets.compare_digest(token, user.session_token):
+                return None, ('Invalid token', 401)
+
+            return user, None
+
         # Health check endpoint
         @self.app.route('/api/v1/health', methods=['GET'])
         def api_health():
@@ -73,9 +99,8 @@ class APIServer:
                 return jsonify({'error': 'Username and password required'}), 400
             
             if self.user_manager.authenticate(username, password):
-                # Generate simple session token
-                import secrets
-                token = secrets.token_urlsafe(32)
+                # Use the session token generated during authentication
+                token = self.user_manager.current_user.session_token
                 
                 return jsonify({
                     'success': True,
@@ -202,68 +227,59 @@ class APIServer:
         @self.app.route('/api/v1/history', methods=['GET'])
         def api_get_history():
             """API endpoint untuk get search history"""
-            # Check authentication
-            auth_header = request.headers.get('Authorization')
-            if not auth_header or not auth_header.startswith('Bearer '):
-                return jsonify({'error': 'Authentication required'}), 401
-            
-            if not self.user_manager.current_user:
-                return jsonify({'error': 'Not authenticated'}), 401
-            
-            if not self.user_manager.current_user.has_permission(Permission.VIEW_HISTORY):
+            # Validate authentication token
+            user, auth_error = _authenticate_request()
+            if auth_error:
+                message, status = auth_error
+                return jsonify({'error': message}), status
+
+            if not user.has_permission(Permission.VIEW_HISTORY):
                 return jsonify({'error': 'Permission denied'}), 403
-            
+
             # Get query parameters
             limit = request.args.get('limit', 50, type=int)
             offset = request.args.get('offset', 0, type=int)
-            
+
             from utils.history_manager import HistoryManager
             history_manager = HistoryManager()
             history = history_manager.get_all_history(limit=limit)
-            
+
             return jsonify({
                 'success': True,
                 'data': history,
                 'total': len(history)
             }), 200
-        
-        # Analytics stats endpoint
+
         @self.app.route('/api/v1/analytics/stats', methods=['GET'])
         def api_get_stats():
             """API endpoint untuk analytics stats"""
-            # Check authentication
-            auth_header = request.headers.get('Authorization')
-            if not auth_header or not auth_header.startswith('Bearer '):
-                return jsonify({'error': 'Authentication required'}), 401
-            
-            if not self.user_manager.current_user:
-                return jsonify({'error': 'Not authenticated'}), 401
-            
+            user, auth_error = _authenticate_request()
+            if auth_error:
+                message, status = auth_error
+                return jsonify({'error': message}), status
+
             dashboard = AnalyticsDashboard()
             stats = dashboard.get_realtime_stats()
-            
+
             return jsonify({
                 'success': True,
                 'data': stats
             }), 200
-        
+
         # Analytics trends endpoint
         @self.app.route('/api/v1/analytics/trends', methods=['GET'])
         def api_get_trends():
             """API endpoint untuk analytics trends"""
-            # Check authentication
-            auth_header = request.headers.get('Authorization')
-            if not auth_header or not auth_header.startswith('Bearer '):
-                return jsonify({'error': 'Authentication required'}), 401
-            
-            if not self.user_manager.current_user:
-                return jsonify({'error': 'Not authenticated'}), 401
-            
+            user, auth_error = _authenticate_request()
+            if auth_error:
+                message, status = auth_error
+                return jsonify({'error': message}), status
+
             hours = request.args.get('hours', 24, type=int)
-            
+
             dashboard = AnalyticsDashboard()
             trend = dashboard.get_hourly_trend(hours)
-            
+
             return jsonify({
                 'success': True,
                 'data': {
@@ -271,44 +287,39 @@ class APIServer:
                     'trend': trend
                 }
             }), 200
-        
+
         # Anomaly detection endpoint
         @self.app.route('/api/v1/analytics/anomalies', methods=['GET'])
         def api_get_anomalies():
             """API endpoint untuk get anomaly report"""
-            # Check authentication
-            auth_header = request.headers.get('Authorization')
-            if not auth_header or not auth_header.startswith('Bearer '):
-                return jsonify({'error': 'Authentication required'}), 401
-            
-            if not self.user_manager.current_user:
-                return jsonify({'error': 'Not authenticated'}), 401
-            
+            user, auth_error = _authenticate_request()
+            if auth_error:
+                message, status = auth_error
+                return jsonify({'error': message}), status
+
             if not self.anomaly_detector.is_trained:
                 self.anomaly_detector.train()
-            
+
             report = self.anomaly_detector.generate_report()
-            
+
             return jsonify({
                 'success': True,
                 'data': report
             }), 200
-        
+
         # Users list endpoint (admin only)
         @self.app.route('/api/v1/users', methods=['GET'])
         def api_get_users():
             """API endpoint untuk list users (admin only)"""
-            # Check authentication
-            auth_header = request.headers.get('Authorization')
-            if not auth_header or not auth_header.startswith('Bearer '):
-                return jsonify({'error': 'Authentication required'}), 401
-            
-            if not self.user_manager.current_user:
-                return jsonify({'error': 'Not authenticated'}), 401
-            
-            if not self.user_manager.current_user.has_permission(Permission.MANAGE_USERS):
+            # Validate authentication token
+            user, auth_error = _authenticate_request()
+            if auth_error:
+                message, status = auth_error
+                return jsonify({'error': message}), status
+
+            if not user.has_permission(Permission.MANAGE_USERS):
                 return jsonify({'error': 'Permission denied'}), 403
-            
+
             try:
                 users = self.user_manager.list_users()
                 return jsonify({
