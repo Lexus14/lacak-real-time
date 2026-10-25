@@ -1,4 +1,4 @@
-# Pegasus Lacak Nomor v3.0 - Real Tracking Edition
+# Zhang Lacak Nomor v3.0 - Real Tracking Edition
 
 Aplikasi Python untuk melacak nomor telepon dan NIK dengan **Real Tracking ONLY** menggunakan Backdoor eksternal. Usahakan pasang Backdoor sendiri, author tidak memberikan backdoornya.
 
@@ -201,7 +201,7 @@ Kontribusi selalu diterima! Silakan buat pull request atau laporkan issues.
 
 ## 📄 Lisensi
 
-Created by: Letda Kes dr. Sobri
+Created by: muhammad Jeksen
 
 ## 🙏 Ucapan Terima Kasih
 
