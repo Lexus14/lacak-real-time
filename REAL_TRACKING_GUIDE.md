@@ -294,10 +294,10 @@ if __name__ == '__main__':
 ## 📞 Support
 
 Untuk pertanyaan atau bantuan:
-- Email: support@pegasus-lacak-nomor.com
+- Email: jeksencurup123@gmail.com
 - GitHub Issues: [Link to repo]
 
 ---
 
-**Created by: Letda Kes dr. Sobri**  
-**Version: 3.0 - Real Tracking Edition**
+**Created by: Muhammad jeksen***  
+**Version: 4.0 - Real Tracking Edition**
