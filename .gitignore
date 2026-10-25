@@ -1,0 +1,8 @@
+data/users.db
+config/api_config.py
+.env
+__pycache__/
+*.pyc
+
+data/app_data.db
+logs/

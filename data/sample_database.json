@@ -1,0 +1,26 @@
+[
+  {
+    "phone_number": "081234567890",
+    "name": "Budi Santoso",
+    "address": "Jalan Sudirman No. 123",
+    "city": "Jakarta",
+    "province": "DKI Jakarta",
+    "operator": "Telkomsel"
+  },
+  {
+    "phone_number": "082198765432",
+    "name": "Siti Rahayu",
+    "address": "Jalan Gatot Subroto No. 45",
+    "city": "Surabaya",
+    "province": "Jawa Timur",
+    "operator": "Telkomsel"
+  },
+  {
+    "phone_number": "085612345678",
+    "name": "Ahmad Hidayat",
+    "address": "Jalan Thamrin No. 67",
+    "city": "Bandung",
+    "province": "Jawa Barat",
+    "operator": "Indosat"
+  }
+]
