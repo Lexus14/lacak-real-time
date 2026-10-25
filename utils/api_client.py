@@ -1,3 +1,4 @@
+import os
 """
 API Client for Real Tracking
 Handles communication with external APIs for phone number and NIK lookup
@@ -118,32 +119,55 @@ class APIClient:
         return None
     
     def lookup_phone(self, phone_number: str) -> Optional[Dict]:
-        """Lookup phone number information"""
+        """Lookup phone number information using NumVerify."""
+        import os
+
         # Check cache first
         if CACHE_RESULTS:
             cached = result_cache.get(f"phone_{phone_number}")
             if cached:
                 print(f"{Fore.CYAN}[i] Using cached data{Style.RESET_ALL}")
                 return cached
-        
-        if not API_ENABLED or not API_KEYS.get('primary'):
-            print(f"{Fore.YELLOW}[!] API not configured. Use API_KEYS in config/api_config.py{Style.RESET_ALL}")
+
+        api_key = os.getenv("NUMVERIFY_API_KEY")
+
+        if not api_key:
+            print(f"{Fore.YELLOW}[!] NUMVERIFY_API_KEY is not configured{Style.RESET_ALL}")
             return None
-        
-        endpoint = API_ENDPOINTS.get('phone_lookup')
-        if not endpoint:
+
+        endpoint = "https://apilayer.net/api/validate"
+
+        print(f"{Fore.CYAN}[*] Querying NumVerify for phone: {phone_number}{Style.RESET_ALL}")
+
+        params = {
+            "access_key": api_key,
+            "number": phone_number,
+            "format": 1
+        }
+
+        try:
+            response = requests.get(
+                endpoint,
+                params=params,
+                timeout=max(API_TIMEOUT, 20)
+            )
+            response.raise_for_status()
+            result = response.json()
+
+            if result.get("error"):
+                error_info = result["error"].get("info", "NumVerify API error")
+                print(f"{Fore.RED}[!] NumVerify: {error_info}{Style.RESET_ALL}")
+                return None
+
+            if CACHE_RESULTS:
+                result_cache.set(f"phone_{phone_number}", result)
+
+            return result
+
+        except requests.exceptions.RequestException as e:
+            print(f"{Fore.RED}[!] NumVerify request failed: {str(e)}{Style.RESET_ALL}")
             return None
-        
-        print(f"{Fore.CYAN}[*] Querying API for phone: {phone_number}{Style.RESET_ALL}")
-        
-        params = {'phone': phone_number}
-        result = self._make_request(endpoint, params)
-        
-        if result and CACHE_RESULTS:
-            result_cache.set(f"phone_{phone_number}", result)
-        
-        return result
-    
+
     def lookup_nik(self, nik: str) -> Optional[Dict]:
         """Lookup NIK information"""
         # Check cache first
@@ -384,15 +408,15 @@ def perform_real_lookup(target: str, lookup_type: str = "auto") -> Optional[Dict
             return result
     
     # Try API if database didn't return results
-    if API_ENABLED and API_KEYS.get('primary'):
-        print(f"{Fore.CYAN}[*] Querying remote API...{Style.RESET_ALL}")
+    if lookup_type == "phone" and os.getenv("NUMVERIFY_API_KEY"):
+        print(f"{Fore.CYAN}[*] Querying NumVerify...{Style.RESET_ALL}")
         if lookup_type == "phone":
             result = api_client.lookup_phone(target)
         elif lookup_type == "nik":
             result = api_client.lookup_nik(target)
         
         if result:
-            print(f"{Fore.GREEN}[✓] Found via API{Style.RESET_ALL}")
+            print(f"{Fore.GREEN}[✓] Found via NumVerify{Style.RESET_ALL}")
             return result
     
     # No results found
