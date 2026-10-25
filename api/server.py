@@ -117,18 +117,15 @@ class APIServer:
         @self.app.route('/api/v1/search/phone', methods=['POST'])
         def api_search_phone():
             """API endpoint untuk phone search"""
-            # Check authentication
-            auth_header = request.headers.get('Authorization')
-            if not auth_header or not auth_header.startswith('Bearer '):
-                return jsonify({'error': 'Authentication required'}), 401
-            
-            # Get current user (simplified - in production use JWT)
-            if not self.user_manager.current_user:
-                return jsonify({'error': 'Not authenticated'}), 401
-            
-            if not self.user_manager.current_user.has_permission(Permission.SEARCH_PHONE):
+
+            # Validate authentication token
+            user, auth_error = _authenticate_request()
+            if auth_error:
+                message, status = auth_error
+                return jsonify({'error': message}), status
+
+            if not user.has_permission(Permission.SEARCH_PHONE):
                 return jsonify({'error': 'Permission denied'}), 403
-            
             data = request.get_json() or {}
             phone = data.get('phone')
             
@@ -180,18 +177,15 @@ class APIServer:
         @self.app.route('/api/v1/search/nik', methods=['POST'])
         def api_search_nik():
             """API endpoint untuk NIK search"""
-            # Check authentication
-            auth_header = request.headers.get('Authorization')
-            if not auth_header or not auth_header.startswith('Bearer '):
-                return jsonify({'error': 'Authentication required'}), 401
-            
-            # Get current user
-            if not self.user_manager.current_user:
-                return jsonify({'error': 'Not authenticated'}), 401
-            
-            if not self.user_manager.current_user.has_permission(Permission.SEARCH_NIK):
+
+            # Validate authentication token
+            user, auth_error = _authenticate_request()
+            if auth_error:
+                message, status = auth_error
+                return jsonify({'error': message}), status
+
+            if not user.has_permission(Permission.SEARCH_NIK):
                 return jsonify({'error': 'Permission denied'}), 403
-            
             data = request.get_json() or {}
             nik = data.get('nik')
             
